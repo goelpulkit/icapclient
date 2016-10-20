@@ -111,7 +111,6 @@ public class IcapMessage {
 
                 // now handle the ICAP message
                 handleIcapMessage(headers);
-
                 state = nextStates.remove(0);
                 break;
             }
@@ -149,7 +148,6 @@ public class IcapMessage {
                 }
                 final String lengthStr = currentMessage.toString().trim();
 
-                // System.out.println(" trying to parse length  " + lengthStr);
                 currentMessage.setLength(0);
                 try {
                     payloadLen = Integer.parseInt(lengthStr, 16);
@@ -167,16 +165,32 @@ public class IcapMessage {
             case PARSE_PAYLOAD:
                 if (0 == payloadLen) {
                     // bad
+                    System.out.println("bad - payloadLen is 0");
                     throw new IcapException("parse exception");
                 }
-                // System.out.println(" parse payload trying to get " + payloadLen + ", rem " + buf.readableBytes() + ", ridx "
-                // + buf.readerIndex());
-                for (int i = payloadOffset + buf.readerIndex(); i < buf.readableBytes(); payloadOffset++) {
-                    buf.readBytes(resPayload, payloadOffset, 1);
+                final int availableLen = buf.writerIndex() - buf.readerIndex();
+                final int toReadLen = payloadLen - payloadOffset;
+
+                // the readBytes() API will update readerIndex
+                if (toReadLen < availableLen) {
+                    buf.readBytes(resPayload, payloadOffset, toReadLen);
+                    payloadOffset += toReadLen;
+
+                } else {
+                    buf.readBytes(resPayload, payloadOffset, availableLen);
+                    payloadOffset += availableLen;
                 }
-                // resPayload = buf.readBytes(payloadLen).array();
+                if (payloadOffset < payloadLen) {
+                    System.out.println("more to raad o " + payloadOffset + ", l " + payloadLen + ", ri " + buf.readerIndex());
+                    // still more to read
+                    return;
+                }
+
+                // reset the readIndex to avoid replay
+                buf.readerIndex(buf.writerIndex());
+
                 state = nextStates.remove(0);
-                System.out.println(" done with parsing payload - moving to " + state);
+                System.out.println(" done with parsing payload of " + payloadLen + " bytes - moving to " + state);
 
             case PARSE_DONE:
             default:

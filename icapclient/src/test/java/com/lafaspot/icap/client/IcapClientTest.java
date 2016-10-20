@@ -13,6 +13,8 @@ import com.lafaspot.icap.client.exception.IcapException;
 
 public class IcapClientTest {
 
+    private static final long CONNECT_TIMEOUT_MILLIS = 500;
+    private static final long INACTIVITY_TIMEOUT_MILLIS = 1000;
     @Test
     public void scanBadFile() throws IcapException, IOException, InterruptedException, ExecutionException {
 
@@ -30,7 +32,8 @@ public class IcapClientTest {
 
         URI uri = URI.create("icap://localhost:1344");
         IcapClient cli = new IcapClient(2);
-        java.util.concurrent.Future<IcapResult> future = cli.scanFile(uri, filename, copiedBuf, null);
+        java.util.concurrent.Future<IcapResult> future = cli.scanFile(uri, CONNECT_TIMEOUT_MILLIS, INACTIVITY_TIMEOUT_MILLIS, filename,
+                copiedBuf, null);
         IcapResult r = future.get();
         Assert.assertEquals(r.getNumViolations(), 0);
     }
@@ -53,7 +56,8 @@ public class IcapClientTest {
 
         URI uri = URI.create("icap://localhost:1344");
         IcapClient cli = new IcapClient(2);
-        java.util.concurrent.Future<IcapResult> future = cli.scanFile(uri, filename, copiedBuf, null);
+        java.util.concurrent.Future<IcapResult> future = cli.scanFile(uri, CONNECT_TIMEOUT_MILLIS, INACTIVITY_TIMEOUT_MILLIS, filename,
+                copiedBuf, null);
         IcapResult r = future.get();
         Assert.assertEquals(r.getNumViolations(), 0);
     }
@@ -75,7 +79,8 @@ public class IcapClientTest {
 
         URI uri = URI.create("icap://localhost:1344");
         IcapClient cli = new IcapClient(2);
-        java.util.concurrent.Future<IcapResult> future = cli.scanFile(uri, filename, buf, null);
+        java.util.concurrent.Future<IcapResult> future = cli.scanFile(uri, CONNECT_TIMEOUT_MILLIS, INACTIVITY_TIMEOUT_MILLIS, filename,
+                buf, null);
         IcapResult r = future.get();
         Assert.assertEquals(r.getNumViolations(), 0);
     }
@@ -97,7 +102,8 @@ public class IcapClientTest {
 
         URI uri = URI.create("icap://localhost:1344");
         IcapClient cli = new IcapClient(2);
-        java.util.concurrent.Future<IcapResult> future = cli.scanFile(uri, filename, copiedBuf, null);
+        java.util.concurrent.Future<IcapResult> future = cli.scanFile(uri, CONNECT_TIMEOUT_MILLIS, INACTIVITY_TIMEOUT_MILLIS, filename,
+                copiedBuf, null);
         IcapResult r = future.get();
         Assert.assertEquals(r.getNumViolations(), 0);
     }
@@ -120,11 +126,12 @@ public class IcapClientTest {
 
         URI uri = URI.create("icap://localhost:1344");
         IcapClient cli = new IcapClient(2);
-        java.util.concurrent.Future<IcapResult> future = cli.scanFile(uri, filename, copiedBuf, null);
+        java.util.concurrent.Future<IcapResult> future = cli.scanFile(uri, CONNECT_TIMEOUT_MILLIS, INACTIVITY_TIMEOUT_MILLIS, filename,
+                copiedBuf, null);
         IcapResult r = future.get();
         Assert.assertEquals(r.getNumViolations(), 0);
 
-        future = cli.scanFile(uri, filename, copiedBuf, null);
+        future = cli.scanFile(uri, CONNECT_TIMEOUT_MILLIS, INACTIVITY_TIMEOUT_MILLIS, filename, copiedBuf, null);
         r = future.get();
         Assert.assertEquals(r.getNumViolations(), 0);
     }

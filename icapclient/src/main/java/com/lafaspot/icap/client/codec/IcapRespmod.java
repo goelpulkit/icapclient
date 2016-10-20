@@ -93,6 +93,8 @@ public class IcapRespmod {
      * @return byte stream to be scanned
      */
     public byte[] getInStream() {
+
+        // TODO - avoid array copy???
         byte copiedStream[] = new byte[inBuffer.length + TRAILER_BYTES.length];
         System.arraycopy(inBuffer, 0, copiedStream, 0, inBuffer.length);
         System.arraycopy(TRAILER_BYTES, 0, copiedStream, inBuffer.length, TRAILER_BYTES.length);

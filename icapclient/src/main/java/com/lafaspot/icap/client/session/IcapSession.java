@@ -4,16 +4,12 @@
 package com.lafaspot.icap.client.session;
 
 import io.netty.bootstrap.Bootstrap;
-import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.handler.timeout.IdleStateHandler;
+import io.netty.util.concurrent.GenericFutureListener;
 
 import java.io.OutputStream;
 import java.net.URI;
-import java.util.Properties;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -24,37 +20,49 @@ import javax.annotation.Nullable;
 import org.apache.log4j.LogManager;
 
 import com.lafaspot.icap.client.IcapResult;
-import com.lafaspot.icap.client.codec.IcapMessageOld;
 import com.lafaspot.icap.client.codec.IcapMessage;
 import com.lafaspot.icap.client.codec.IcapMessageDecoder;
+import com.lafaspot.icap.client.codec.IcapMessageOld;
 import com.lafaspot.icap.client.codec.IcapOptions;
 import com.lafaspot.icap.client.codec.IcapRespmod;
 import com.lafaspot.icap.client.exception.IcapException;
 
 /**
+ * IcapSession - identifies a session that represents one scan request.
+ *
  * @author kraman
  *
  */
-public class IcapSession extends SimpleChannelInboundHandler<ByteBuf> {
+public class IcapSession {
 
     /**
      * Creates a ICAP session.
      *
      * @param sessionId identifier for the session
      * @param uri remote IMAP server URI
-     * @param configVal configuration for this session
+     * @param connectTimeout timeout for socket connection
+     * @param inactivityTimeout channel inactivity timeout
      * @param bootstrap the bootstrap
      * @param logManager the LogManager instance
      * @throws IMAPSessionException on SSL or connect failure
      */
-    public IcapSession(@Nonnull final String sessionId, @Nonnull final URI uri, @Nonnull final Properties configVal,
+    public IcapSession(@Nonnull final String sessionId, @Nonnull final URI uri, final long connectTimeout, final long inactivityTimeout,
             @Nonnull final Bootstrap bootstrap, @Nonnull final LogManager logManager) throws IcapException {
         this.serverUri = uri;
         this.bootstrap = bootstrap;
-        this.connectTimeout = 0;
-        this.inactivityTimeout = 0;
+        this.connectTimeout = connectTimeout;
+        this.inactivityTimeout = inactivityTimeout;
     }
 
+    /**
+     * Request to scan an file, a request will be sent to the Symantec AV server to scan the request to clean/determine if the file is clean.
+     *
+     * @param filename name of the file to be scanned
+     * @param fileToScan byte stream of the file to be scanned
+     * @param scannedFile byte stream of the cleaned file
+     * @return the future object
+     * @throws IcapException on failure
+     */
     public Future<IcapResult> scanFile(@Nonnull String filename, @Nonnull byte[] fileToScan, @Nullable OutputStream scannedFile)
             throws IcapException {
 
@@ -70,11 +78,15 @@ public class IcapSession extends SimpleChannelInboundHandler<ByteBuf> {
         try {
             // sync wait for connect to complete todo make this async
             channel = bootstrap.connect(serverUri.getHost(), serverUri.getPort()).sync().channel();
-            channel.pipeline().addLast("idleStateHandler", new IdleStateHandler(0, 0, inactivityTimeout));
-            channel.pipeline().addLast("inactivityHandler", new IcapInactivityHandler(this));
+            channel.pipeline().addLast("inactivityHandler", new IcapInactivityHandler(this, inactivityTimeout));
             channel.pipeline().addLast(new IcapMessageDecoder());
-            // channel.pipeline().addLast(new OneMoreDecoder());
             channel.pipeline().addLast(new IcapChannelHandler(this));
+            final IcapSession thisSession = this;
+            channel.closeFuture().addListener(new GenericFutureListener() {
+                public void operationComplete(io.netty.util.concurrent.Future future) throws Exception {
+                    thisSession.onDisconnect();
+                }
+            });
 
             if (!channel.isActive()) {
                 throw new IcapException("not connected");
@@ -85,36 +97,12 @@ public class IcapSession extends SimpleChannelInboundHandler<ByteBuf> {
 
             }
 
-            // Thread.sleep(10 * 60 * 1000);
-            // Thread.sleep(5 * 1000);
         } catch (InterruptedException e) {
             throw new IcapException("not connected");
         }
 
         futureRef.set(new IcapFuture(this));
         return futureRef.get();
-    }
-
-    public IcapResult getResult() {
-        return resultRef.get();
-    }
-
-    public boolean hasErrors() {
-        return (null != cause);
-    }
-
-    public Exception getCause() {
-        return cause;
-    }
-
-
-
-    @Override
-    public void channelRead(ChannelHandlerContext ctx, Object buf) throws Exception {
-
-        System.out.println(" ch read " + ((ByteBuf) buf).readableBytes());
-        final IcapMessageOld msg = new IcapMessageOld((ByteBuf) buf);
-        processResponse(msg);
     }
 
     public void processResponse(@Nonnull final IcapMessageOld msg) {
@@ -142,8 +130,12 @@ public class IcapSession extends SimpleChannelInboundHandler<ByteBuf> {
         }
     }
 
+    /**
+     * Callback from netty on receiving a message from the network.
+     *
+     * @param msg incoming message
+     */
     public void processResponse(@Nonnull final IcapMessage msg) {
-
         System.out.println("<- messageReceived in " + stateRef.get() + ", [\r\n" + msg.toString() + "\r\n]");
         switch (stateRef.get()) {
         case OPTIONS:
@@ -165,7 +157,7 @@ public class IcapSession extends SimpleChannelInboundHandler<ByteBuf> {
             }
             break;
         case SCAN:
-
+            stateRef.set(IcapSessionState.SCAN_DONE);
             if (msg.getCause() != null) {
                 System.out.println(" SCAN state - failed " + msg.getCause());
                 futureRef.get().done(msg.getCause());
@@ -174,16 +166,46 @@ public class IcapSession extends SimpleChannelInboundHandler<ByteBuf> {
                 futureRef.get().done(msg.getResult());
             }
             break;
+        case SCAN_DONE:
+        default:
         }
     }
 
-    private final AtomicReference<IcapResult> resultRef = new AtomicReference<IcapResult>();
-    private final AtomicReference<IcapFuture> futureRef = new AtomicReference<IcapFuture>();
-    private Exception cause;
+    /**
+     * Callback from netty on channel inactivity.
+     */
+    public void onTimeout() {
+        System.out.println("**channel timeout** TH " + Thread.currentThread().getId());
+        stateRef.set(IcapSessionState.NULL);
+        if (null != futureRef.get()) {
+            futureRef.get().done(new IcapException("inactivity timeout"));
+            futureRef.set(null);
+        }
+    }
 
+    /**
+     * Callback from netty on channel closure.
+     */
+    public void onDisconnect() {
+        System.out.println("**channel disconnected (not-ignored)** TH " + Thread.currentThread().getId());
+        stateRef.set(IcapSessionState.NULL);
+        if (futureRef.get() != null) {
+            futureRef.get().done(new IcapException("channel disconnected"));
+            futureRef.set(null);
+        }
+
+    }
+
+    /** Reference to the current IcapFuture object. */
+    private final AtomicReference<IcapFuture> futureRef = new AtomicReference<IcapFuture>();
+
+    /** pointer to the byte stream of the file to be scanned. */
     private byte[] fileToScan;
+
+    /** pointer to the cleaned/scanned byte stream from the AV server. */
     private OutputStream outStream;
 
+    /** filename of the input file to be scanned. */
     private String filename;
 
     /** Server to connect to. */
@@ -192,22 +214,23 @@ public class IcapSession extends SimpleChannelInboundHandler<ByteBuf> {
     /** Bootstrap. */
     private final Bootstrap bootstrap;
 
-    private final int inactivityTimeout;
-    private final int connectTimeout;
+    /** channel inactivity timeout. */
+    private final long inactivityTimeout;
+
+    /** socket connect timeout. */
+    private final long connectTimeout;
 
     private final AtomicBoolean isUsed = new AtomicBoolean(false);
 
+    /** Reference to the current state of the session. */
     private AtomicReference<IcapSessionState> stateRef = new AtomicReference<IcapSession.IcapSessionState>(IcapSessionState.NULL);
 
+    /** The channel associated with this session. */
     private Channel channel;
 
+    /** Enum identifying the session states. */
     enum IcapSessionState {
         NULL, INIT, CONNECTED, OPTIONS, OPTIONS_DONE, SCAN, SCAN_DONE
-    }
-
-    @Override
-    protected void channelRead0(ChannelHandlerContext ctx, ByteBuf msg) throws Exception {
-        channelRead(ctx, msg);
     };
 
 }
