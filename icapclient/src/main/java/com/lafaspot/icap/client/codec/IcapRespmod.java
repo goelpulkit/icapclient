@@ -24,6 +24,8 @@ public class IcapRespmod {
         final StringBuffer buf = new StringBuffer();
         buf.append("RESPMOD icap://");
         buf.append(uri.getHost());
+        buf.append(":");
+        buf.append(uri.getPort());
         buf.append("/SYMCScanResp-AV ICAP/1.0\r\n");
         buf.append("Host: ");
         buf.append(uri.getHost());
@@ -91,7 +93,10 @@ public class IcapRespmod {
      * @return byte stream to be scanned
      */
     public byte[] getInStream() {
-        return inBuffer;
+        byte copiedStream[] = new byte[inBuffer.length + TRAILER_BYTES.length];
+        System.arraycopy(inBuffer, 0, copiedStream, 0, inBuffer.length);
+        System.arraycopy(TRAILER_BYTES, 0, copiedStream, inBuffer.length, TRAILER_BYTES.length);
+        return copiedStream;
     }
 
 

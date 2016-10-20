@@ -14,12 +14,11 @@ public class IcapMessageDecoder extends ReplayingDecoder<IcapMessage> {
 
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf buf, List<Object> out) throws Exception {
-        System.out.println("<- recd bytes replaying decoder. ridx " + buf.readerIndex() + ", readable " + buf.readableBytes());
+        System.out.println("<- replay ri " + buf.readerIndex() + ", wi " + buf.writerIndex() + ", th " + Thread.currentThread().getId());
         IcapMessage msg = state();
-        msg.parse(buf);
+        msg.parse(buf, this);
         if (msg.parsingDone()) {
             out.add(msg);
         }
     }
-
 }

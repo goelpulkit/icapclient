@@ -6,7 +6,6 @@ package com.lafaspot.icap.client.codec;
 import io.netty.buffer.ByteBuf;
 
 import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -50,7 +49,7 @@ public class IcapMessage {
         return (state == State.PARSE_DONE);
     }
 
-    public void parse(@Nonnull final ByteBuf buf) {
+    public void parse(@Nonnull final ByteBuf buf, @Nonnull IcapMessageDecoder dec) {
         try {
             System.out.println("<- parse in - " + state + " - " + this.hashCode());
             switch (state) {
@@ -145,10 +144,12 @@ public class IcapMessage {
             }
 
             case PARSE_RES_PAYLOAD_LENGTH: {
-                if (!parseForHeader(buf, ICAP_ENDOFHEADER_DELIM)) {
+                if (!parseForHeader2(buf, dec, ICAP_ENDOFHEADER_DELIM)) {
                     return;
                 }
-                final String lengthStr = currentMessage.toString();
+                final String lengthStr = currentMessage.toString().trim();
+
+                // System.out.println(" trying to parse length  " + lengthStr);
                 currentMessage.setLength(0);
                 try {
                     payloadLen = Integer.parseInt(lengthStr, 16);
@@ -168,8 +169,8 @@ public class IcapMessage {
                     // bad
                     throw new IcapException("parse exception");
                 }
-                System.out.println(" parse payload trying to get " + payloadLen + ", rem " + buf.readableBytes() + ", ridx "
-                        + buf.readerIndex());
+                // System.out.println(" parse payload trying to get " + payloadLen + ", rem " + buf.readableBytes() + ", ridx "
+                // + buf.readerIndex());
                 for (int i = payloadOffset + buf.readerIndex(); i < buf.readableBytes(); payloadOffset++) {
                     buf.readBytes(resPayload, payloadOffset, 1);
                 }
@@ -228,39 +229,69 @@ public class IcapMessage {
     }
 
     private boolean parseForHeader(@Nonnull final ByteBuf buf, @Nonnull final byte[] delim) throws IcapException {
-
         if (buf.readableBytes() < delim.length) {
             // error
             throw new IcapException("Error in getHeader() method");
         }
         int eohIdx = 0;
-        for (int idx = buf.readerIndex(); idx < (buf.readerIndex() + buf.readableBytes()); idx++) {
+        for (int idx = buf.readerIndex(); idx < buf.writerIndex(); idx++) {
             final char msg = (char) buf.getByte(idx);
             if (msg == delim[eohIdx]) {
                 eohIdx++;
                 if (eohIdx == (delim.length)) {
-                    final int len = idx - buf.readerIndex() - (delim.length - 1);
-                    final String ret = buf.getCharSequence(buf.readerIndex(), len, StandardCharsets.UTF_8).toString();
                     buf.readerIndex(idx + 1);
-
-                    // remove last 3 bytes
+                    // remove last 3 bytes because we did not add the 4th delim byte yet
                     currentMessage.setLength(currentMessage.length() - 3);
                     return true;
                 } else {
                     currentMessage.append(msg);
                 }
-                continue;
             } else {
                 currentMessage.append(msg);
                 eohIdx = 0;
             }
         }
 
-        // reached end of buf before parsing the header... reset read index for next parse
-        if (eohIdx > 0) {
-            final int r = buf.readerIndex();
-            buf.readerIndex(r - eohIdx);
+        // drop the entire message and parse again
+        currentMessage.setLength(0);
+        return false;
+    }
+
+    private boolean parseForHeader2(@Nonnull final ByteBuf buf, @Nonnull IcapMessageDecoder dec, @Nonnull final byte[] delim)
+            throws IcapException {
+
+        if (buf.readableBytes() < delim.length) {
+            // error
+            throw new IcapException("Error in getHeader() method");
         }
+        int eohIdx = 0;
+        int newEohLen = 2;
+        for (int idx = buf.readerIndex(); idx < buf.writerIndex(); idx++) {
+            final char msg = (char) buf.getByte(idx);
+            if (msg == delim[eohIdx]) {
+                eohIdx++;
+                if (eohIdx == (delim.length)) {
+                    // remove last 3 bytes
+                    currentMessage.setLength(currentMessage.length() - 3);
+                    buf.readerIndex(idx + 1);
+                    return true;
+                } else {
+                    currentMessage.append(msg);
+                }
+            } else {
+                if (newEohLen == eohIdx) {
+                    // remove last 2 bytes, the 0xA and 0xD
+                    currentMessage.setLength(currentMessage.length() - newEohLen);
+                    buf.readerIndex(idx + 1);
+                    return true;
+                } else {
+                    currentMessage.append(msg);
+                    eohIdx = 0;
+                }
+            }
+        }
+
+        currentMessage.setLength(0);
         return false;
     }
 
