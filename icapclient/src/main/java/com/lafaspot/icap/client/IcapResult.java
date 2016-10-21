@@ -171,10 +171,10 @@ public class IcapResult {
                 case 2:
                     return DELETED;
                 default:
-                    throw new IcapException("parse error");
+                    throw new IcapException (IcapException.FailureType.PARSE_ERROR);
                 }
             } catch (NumberFormatException e) {
-                throw new IcapException("parse error");
+                throw new IcapException (IcapException.FailureType.PARSE_ERROR);
             }
 
         }

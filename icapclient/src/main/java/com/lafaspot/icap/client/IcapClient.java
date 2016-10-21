@@ -17,6 +17,7 @@ import javax.annotation.Nullable;
 
 import com.lafaspot.icap.client.exception.IcapException;
 import com.lafaspot.icap.client.session.IcapSession;
+import com.lafaspot.logfast.logging.LogManager;
 
 /**
  * IcapClient - used to communicate with Symantec AV server using ICAP protocol.
@@ -30,12 +31,14 @@ public class IcapClient {
      * IcapClient constructor.
      *
      * @param threads number of threads to be used in the event loop.
+     * @param logManager the logger framework
      */
-    public IcapClient(final int threads) {
+    public IcapClient(final int threads, @Nonnull LogManager logManager) {
 
         try {
             this.bootstrap = new Bootstrap();
             this.group = new NioEventLoopGroup(threads);
+            this.logManager = logManager;
             bootstrap.group(group).channel(NioSocketChannel.class).handler(new IcapClientInitializer());
         } finally {
             // this.group.shutdownGracefully();
@@ -56,7 +59,7 @@ public class IcapClient {
      */
     public Future<IcapResult> scanFile(@Nonnull final URI server, final long connectTimeout, final long inactivityTimeout,
             @Nonnull String fileName, @Nonnull byte[] toScanFile, @Nullable OutputStream scannedFile) throws IcapException {
-        return new IcapSession("abc", server, connectTimeout, inactivityTimeout, bootstrap, null).scanFile(fileName, toScanFile,
+        return new IcapSession("abc", server, connectTimeout, inactivityTimeout, bootstrap, logManager).scanFile(fileName, toScanFile,
                 scannedFile);
     }
 
@@ -65,5 +68,8 @@ public class IcapClient {
 
     /** Event loop group that will serve all channels for ICAP client. */
     private final EventLoopGroup group;
+
+    /** The logger. */
+    private final LogManager logManager;
 
 }

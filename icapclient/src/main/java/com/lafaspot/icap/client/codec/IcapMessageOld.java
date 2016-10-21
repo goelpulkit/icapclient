@@ -44,7 +44,7 @@ public class IcapMessageOld {
                         try {
                             status = Integer.parseInt(toks[1].trim());
                         } catch (NumberFormatException e) {
-                            throw new IcapException("parse error");
+                            throw new IcapException (IcapException.FailureType.PARSE_ERROR);
                         }
                         icapHeaders = headers1;
                         switch (status) {
@@ -55,7 +55,7 @@ public class IcapMessageOld {
                             handleIcap200Ok(headers1);
                             break;
                         default:
-                            throw new IcapException("parse error");
+                            throw new IcapException (IcapException.FailureType.PARSE_ERROR);
                         }
                     }
                 }
@@ -127,7 +127,7 @@ public class IcapMessageOld {
             try {
                 length = Integer.parseInt(line.trim(), 16);
             } catch (NumberFormatException e) {
-                throw new IcapException("parse error");
+                throw new IcapException (IcapException.FailureType.PARSE_ERROR);
             }
             readResponseStream(length);
             break;
@@ -140,7 +140,7 @@ public class IcapMessageOld {
     protected void readResponseStream(final int len) throws IcapException {
         int available = ((buf.readerIndex() + buf.readableBytes()) - buf.readerIndex());
         if (available != len) {
-            throw new IcapException("parse error");
+            throw new IcapException (IcapException.FailureType.PARSE_ERROR);
         }
         byte buffer[] = new byte[available];
 
@@ -149,9 +149,9 @@ public class IcapMessageOld {
             resStream = new ByteArrayOutputStream();
             resStream.write(buffer);
         } catch (IndexOutOfBoundsException e) {
-            throw new IcapException("parse error");
+            throw new IcapException (IcapException.FailureType.PARSE_ERROR);
         } catch (IOException e) {
-            throw new IcapException("parse error");
+            throw new IcapException (IcapException.FailureType.PARSE_ERROR);
         }
     }
 
@@ -171,7 +171,7 @@ public class IcapMessageOld {
                         handleHttpresonse(resHeaders);
                         break;
                     } catch (NumberFormatException e) {
-                        throw new IcapException("parse error");
+                        throw new IcapException (IcapException.FailureType.PARSE_ERROR);
                     }
                 } else if (headers[index].indexOf(ICAP_NULL_BODY_PREFIX) != -1) {
                     // done
@@ -196,10 +196,10 @@ public class IcapMessageOld {
                 try {
                     numViolations = Integer.parseInt(headers[index].substring(k + 1).trim());
                 } catch (NumberFormatException e) {
-                    throw new IcapException("parse error");
+                    throw new IcapException (IcapException.FailureType.PARSE_ERROR);
                 }
             } else {
-                throw new IcapException("parse error");
+                throw new IcapException (IcapException.FailureType.PARSE_ERROR);
             }
             // increment
             index++;
@@ -227,13 +227,13 @@ public class IcapMessageOld {
                                 resBodyVal = Integer.parseInt(resBodyStr.trim());
                                 break;
                             } catch (NumberFormatException e) {
-                                throw new IcapException("parse error");
+                                throw new IcapException (IcapException.FailureType.PARSE_ERROR);
                             }
                         } else if (headers[index].indexOf(ICAP_NULL_BODY_PREFIX) != -1) {
                             // done
                             return;
                         } else {
-                            throw new IcapException("parse error");
+                            throw new IcapException (IcapException.FailureType.PARSE_ERROR);
                         }
                     }
                 }
@@ -244,11 +244,11 @@ public class IcapMessageOld {
 
 
             } else {
-                throw new IcapException("parse error");
+                throw new IcapException (IcapException.FailureType.PARSE_ERROR);
             }
 
         } else {
-            throw new IcapException("parse error");
+            throw new IcapException (IcapException.FailureType.PARSE_ERROR);
         }
     }
 
@@ -268,7 +268,7 @@ public class IcapMessageOld {
 
         if (buf.readableBytes() < endOfHeader.length) {
             // error
-            throw new IcapException("Error in getHeader() method");
+            throw new IcapException (IcapException.FailureType.PARSE_ERROR);
         }
         int eohIdx = 0;
         for (int idx = buf.readerIndex(); idx < (buf.readerIndex() + buf.readableBytes()); idx++) {
@@ -287,7 +287,7 @@ public class IcapMessageOld {
             }
         }
 
-        throw new IcapException("Error in getHeader() method");
+        throw new IcapException (IcapException.FailureType.PARSE_ERROR);
     }
 
     protected String getLine() throws IcapException {
@@ -295,7 +295,7 @@ public class IcapMessageOld {
 
         if (buf.readableBytes() < endOfLine.length) {
             // error
-            throw new IcapException("Error in getHeader() method");
+            throw new IcapException (IcapException.FailureType.PARSE_ERROR);
         }
         int eolIdx = 0;
         for (int idx = buf.readerIndex(); idx < (buf.readerIndex() + buf.readableBytes()); idx++) {
@@ -314,7 +314,7 @@ public class IcapMessageOld {
             }
         }
 
-        throw new IcapException("Error in getHeader() method");
+        throw new IcapException (IcapException.FailureType.PARSE_ERROR);
 
     }
 
@@ -383,10 +383,10 @@ public class IcapMessageOld {
                 case 2:
                     return DELETED;
                 default:
-                    throw new IcapException("parse error");
+                    throw new IcapException (IcapException.FailureType.PARSE_ERROR);
                 }
             } catch (NumberFormatException e) {
-                throw new IcapException("parse error");
+                throw new IcapException (IcapException.FailureType.PARSE_ERROR);
             }
 
         }

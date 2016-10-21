@@ -12,6 +12,8 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
 
+import com.lafaspot.logfast.logging.Logger;
+
 /**
  * Handles channel inactivity.
  *
@@ -23,20 +25,24 @@ public class IcapInactivityHandler extends IdleStateHandler {
     /** the session object. */
     private final IcapSession session;
 
+    /** the logger object. */
+    private final Logger logger;
+
     /**
      * Constructor to handle inactivity events.
      *
      * @param session the session
      * @param inactivityTimeout timeout value
      */
-    public IcapInactivityHandler(@Nonnull final IcapSession session, final long inactivityTimeout) {
+    public IcapInactivityHandler(@Nonnull final IcapSession session, final long inactivityTimeout, @Nonnull Logger logger) {
         super(0, 0, inactivityTimeout, TimeUnit.MILLISECONDS);
         this.session = session;
+        this.logger = logger;
     }
 
     @Override
     protected void channelIdle(ChannelHandlerContext ctx, IdleStateEvent evt) {
-        System.out.println(" <-> channel inactive " + evt.state());
+        logger.debug(" <-> channel inactive " + evt.state(), null);
         if (evt.state() == IdleState.ALL_IDLE) {
             ctx.close();
         }

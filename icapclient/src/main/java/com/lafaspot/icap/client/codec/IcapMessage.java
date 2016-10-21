@@ -23,6 +23,7 @@ import org.apache.http.util.CharArrayBuffer;
 
 import com.lafaspot.icap.client.IcapResult;
 import com.lafaspot.icap.client.exception.IcapException;
+import com.lafaspot.logfast.logging.Logger;
 
 /**
  * Base IcapMessage object.
@@ -35,6 +36,13 @@ public class IcapMessage {
     private List<State> nextStates = new ArrayList<State>();
     private State state = State.PARSE_ICAP_MESSAGE;
     private int payloadOffset;
+
+    /** The logger object. */
+    private final Logger logger;
+
+    public IcapMessage(@Nonnull Logger logger) {
+        this.logger = logger;
+    }
 
     public void reset() {
         state = State.PARSE_ICAP_MESSAGE;
@@ -51,7 +59,7 @@ public class IcapMessage {
 
     public void parse(@Nonnull final ByteBuf buf, @Nonnull IcapMessageDecoder dec) {
         try {
-            System.out.println("<- parse in - " + state + " - " + this.hashCode());
+            logger.debug("<- parse in - " + state + " - " + this.hashCode(), null);
             switch (state) {
             case PARSE_ICAP_MESSAGE: {
                 if (!parseForHeader(buf, ICAP_ENDOFHEADER_DELIM)) {
@@ -91,11 +99,11 @@ public class IcapMessage {
                             }
                         }
                     } catch (NumberFormatException e) {
-                        throw new IcapException("parse error - nfe");
+                        throw new IcapException(IcapException.FailureType.PARSE_ERROR);
                     }
                 }
 
-                System.out.println("<- encap " + encapsulateHeaderVal + ", rh " + resHdr + ", rb " + resBody);
+                logger.debug("<- encap " + encapsulateHeaderVal + ", rh " + resHdr + ", rb " + resBody, null);
 
                 if (-1 != resHdr) {
                     nextStates.add(State.PARSE_RES_HEADER);
@@ -138,7 +146,7 @@ public class IcapMessage {
                 }
 
                 state = nextStates.remove(0);
-                System.out.println(" done with parsing body - moving to " + state);
+                logger.debug(" done with parsing body - moving to " + state, null);
                 break;
             }
 
@@ -152,21 +160,21 @@ public class IcapMessage {
                 try {
                     payloadLen = Integer.parseInt(lengthStr, 16);
                 } catch (NumberFormatException e) {
-                    throw new IcapException("nfe during parse payload len");
+                    throw new IcapException(IcapException.FailureType.PARSE_ERROR);
                 }
 
                 resPayload = new byte[payloadLen];
                 payloadOffset = 0;
                 state = nextStates.remove(0);
-                System.out.println(" done with parsing payload len=" + payloadLen + " - moving to " + state);
+                logger.debug(" done with parsing payload len=" + payloadLen + " - moving to " + state, null);
                 break;
             }
 
             case PARSE_PAYLOAD:
                 if (0 == payloadLen) {
                     // bad
-                    System.out.println("bad - payloadLen is 0");
-                    throw new IcapException("parse exception");
+                    logger.debug("bad - payloadLen is 0", null);
+                    throw new IcapException(IcapException.FailureType.PARSE_ERROR);
                 }
                 final int availableLen = buf.writerIndex() - buf.readerIndex();
                 final int toReadLen = payloadLen - payloadOffset;
@@ -181,7 +189,7 @@ public class IcapMessage {
                     payloadOffset += availableLen;
                 }
                 if (payloadOffset < payloadLen) {
-                    System.out.println("more to raad o " + payloadOffset + ", l " + payloadLen + ", ri " + buf.readerIndex());
+                    logger.debug("more to raad o " + payloadOffset + ", l " + payloadLen + ", ri " + buf.readerIndex(), null);
                     // still more to read
                     return;
                 }
@@ -190,7 +198,7 @@ public class IcapMessage {
                 buf.readerIndex(buf.writerIndex());
 
                 state = nextStates.remove(0);
-                System.out.println(" done with parsing payload of " + payloadLen + " bytes - moving to " + state);
+                logger.debug(" done with parsing payload of " + payloadLen + " bytes - moving to " + state, null);
 
             case PARSE_DONE:
             default:
@@ -211,9 +219,9 @@ public class IcapMessage {
                 try {
                     status = Integer.parseInt(toks[1].trim());
                 } catch (NumberFormatException e) {
-                    throw new IcapException("parse error");
+                    throw new IcapException (IcapException.FailureType.PARSE_ERROR);
                 }
-                System.out.println ("-- icap status code " + status);
+                logger.debug("-- icap status code " + status, null);
                 switch (status) {
                 case 201:
                     handleIcap201Ok(headers);
@@ -222,7 +230,7 @@ public class IcapMessage {
                     handleIcap200Ok(headers);
                     break;
                 default:
-                    throw new IcapException("parse error");
+                    throw new IcapException (IcapException.FailureType.PARSE_ERROR);
                 }
             }
         }
@@ -239,13 +247,13 @@ public class IcapMessage {
             }
         }
 
-        throw new IcapException("parse error");
+        throw new IcapException (IcapException.FailureType.PARSE_ERROR);
     }
 
     private boolean parseForHeader(@Nonnull final ByteBuf buf, @Nonnull final byte[] delim) throws IcapException {
         if (buf.readableBytes() < delim.length) {
             // error
-            throw new IcapException("Error in getHeader() method");
+            throw new IcapException (IcapException.FailureType.PARSE_ERROR);
         }
         int eohIdx = 0;
         for (int idx = buf.readerIndex(); idx < buf.writerIndex(); idx++) {
@@ -276,7 +284,7 @@ public class IcapMessage {
 
         if (buf.readableBytes() < delim.length) {
             // error
-            throw new IcapException("Error in getHeader() method");
+            throw new IcapException (IcapException.FailureType.PARSE_ERROR);
         }
         int eohIdx = 0;
         int newEohLen = 2;
@@ -322,7 +330,7 @@ public class IcapMessage {
                         result.setNumViolations(0);
                         break;
                     } catch (NumberFormatException e) {
-                        throw new IcapException("parse error");
+                        throw new IcapException (IcapException.FailureType.PARSE_ERROR);
                     }
 
                 } else if (headers[index].indexOf(ICAP_NULL_BODY_PREFIX) != -1) {
@@ -351,10 +359,10 @@ public class IcapMessage {
                     numViolations = Integer.parseInt(headers[index].substring(k + 1).trim());
                     result.setNumViolations(numViolations);
                 } catch (NumberFormatException e) {
-                    throw new IcapException("parse error");
+                    throw new IcapException (IcapException.FailureType.PARSE_ERROR);
                 }
             } else {
-                throw new IcapException("parse error");
+                throw new IcapException (IcapException.FailureType.PARSE_ERROR);
             }
             // increment
             index++;
@@ -368,11 +376,11 @@ public class IcapMessage {
                 String dispositionStr = headers[index++];
                 result.setDispositionAsStr(dispositionStr);
             } else {
-                throw new IcapException("parse error");
+                throw new IcapException (IcapException.FailureType.PARSE_ERROR);
             }
 
         } else {
-            throw new IcapException("parse error");
+            throw new IcapException (IcapException.FailureType.PARSE_ERROR);
         }
     }
 

@@ -57,14 +57,15 @@
                 </exclusion>
             </exclusions>
         </dependency>
-            <dependency>
-                <groupId>com.google.code.findbugs</groupId>
-                <artifactId>jsr305</artifactId>
-                <version>3.0.1</version>
-            </dependency>
-        <!--  dependency>
+        <dependency>
+            <groupId>com.google.code.findbugs</groupId>
+            <artifactId>jsr305</artifactId>
+            <version>3.0.1</version>
+        </dependency>
+        <dependency>
             <groupId>com.github.lafa.logfast</groupId>
             <artifactId>logfast.core</artifactId>
-        </dependency -->
+            <version>1.0.6</version>
+        </dependency>
     </dependencies>
 </project>

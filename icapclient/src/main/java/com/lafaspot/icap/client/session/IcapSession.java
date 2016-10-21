@@ -17,8 +17,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.apache.log4j.LogManager;
-
 import com.lafaspot.icap.client.IcapResult;
 import com.lafaspot.icap.client.codec.IcapMessage;
 import com.lafaspot.icap.client.codec.IcapMessageDecoder;
@@ -26,6 +24,9 @@ import com.lafaspot.icap.client.codec.IcapMessageOld;
 import com.lafaspot.icap.client.codec.IcapOptions;
 import com.lafaspot.icap.client.codec.IcapRespmod;
 import com.lafaspot.icap.client.exception.IcapException;
+import com.lafaspot.logfast.logging.LogContext;
+import com.lafaspot.logfast.logging.LogManager;
+import com.lafaspot.logfast.logging.Logger;
 
 /**
  * IcapSession - identifies a session that represents one scan request.
@@ -52,6 +53,9 @@ public class IcapSession {
         this.bootstrap = bootstrap;
         this.connectTimeout = connectTimeout;
         this.inactivityTimeout = inactivityTimeout;
+
+        LogContext context = new SessionLogContext("IcapSession-" + uri.toASCIIString(), sessionId);
+        this.logger = logManager.getLogger(context);
     }
 
     /**
@@ -67,7 +71,7 @@ public class IcapSession {
             throws IcapException {
 
         if (!isUsed.compareAndSet(false, true)) {
-            throw new IcapException("session already in use.");
+            throw new IcapException(IcapException.FailureType.SESSION_IN_USE);
         }
 
         this.filename = filename;
@@ -78,8 +82,8 @@ public class IcapSession {
         try {
             // sync wait for connect to complete todo make this async
             channel = bootstrap.connect(serverUri.getHost(), serverUri.getPort()).sync().channel();
-            channel.pipeline().addLast("inactivityHandler", new IcapInactivityHandler(this, inactivityTimeout));
-            channel.pipeline().addLast(new IcapMessageDecoder());
+            channel.pipeline().addLast("inactivityHandler", new IcapInactivityHandler(this, inactivityTimeout, logger));
+            channel.pipeline().addLast(new IcapMessageDecoder(logger));
             channel.pipeline().addLast(new IcapChannelHandler(this));
             final IcapSession thisSession = this;
             channel.closeFuture().addListener(new GenericFutureListener() {
@@ -89,16 +93,16 @@ public class IcapSession {
             });
 
             if (!channel.isActive()) {
-                throw new IcapException("not connected");
+                throw new IcapException(IcapException.FailureType.NOT_CONNECTED);
             } else {
-                System.out.println("connected, sending");
+                logger.debug("connected, sending", null);
                 stateRef.set(IcapSessionState.INIT.OPTIONS);
                 f = channel.writeAndFlush(new IcapOptions(serverUri).getMessage());
 
             }
 
         } catch (InterruptedException e) {
-            throw new IcapException("not connected");
+            throw new IcapException(IcapException.FailureType.NOT_CONNECTED);
         }
 
         futureRef.set(new IcapFuture(this));
@@ -107,17 +111,17 @@ public class IcapSession {
 
     public void processResponse(@Nonnull final IcapMessageOld msg) {
 
-        System.out.println(" messageReceived in " + stateRef.get() + ", [\r\n" + msg.toString() + "\r\n]");
+        logger.debug(" messageReceived in " + stateRef.get() + ", [\r\n" + msg.toString() + "\r\n]", null);
         switch (stateRef.get()) {
         case OPTIONS:
             if (null != msg.getCause()) {
-                System.out.println("options failed " + msg.getCause());
+                logger.debug("options failed " + msg.getCause(), null);
                 futureRef.get().done(msg.getCause());
             } else {
                 stateRef.set(IcapSessionState.SCAN);
                 final IcapRespmod scanReq = new IcapRespmod(serverUri, false, filename, fileToScan);
 
-                System.out.println(" sending scan req " + scanReq.getIcapMessage());
+                logger.debug(" sending scan req " + scanReq.getIcapMessage(), null);
                 channel.writeAndFlush(scanReq.getIcapMessage());
                 channel.writeAndFlush(scanReq.getInStream());
                 byte[] endOfHttp = { '\r', '\n', '0' };
@@ -125,7 +129,7 @@ public class IcapSession {
             }
             break;
         case SCAN:
-            System.out.println(" SCAN state " + msg.toString());
+            logger.debug(" SCAN state " + msg.toString(), null);
             break;
         }
     }
@@ -136,33 +140,33 @@ public class IcapSession {
      * @param msg incoming message
      */
     public void processResponse(@Nonnull final IcapMessage msg) {
-        System.out.println("<- messageReceived in " + stateRef.get() + ", [\r\n" + msg.toString() + "\r\n]");
+        logger.debug("<- messageReceived in " + stateRef.get() + ", [\r\n" + msg.toString() + "\r\n]", null);
         switch (stateRef.get()) {
         case OPTIONS:
             if (null != msg.getCause()) {
-                System.out.println("options failed " + msg.getCause());
+                logger.debug("options failed " + msg.getCause(), null);
                 futureRef.get().done(msg.getCause());
             } else {
                 stateRef.set(IcapSessionState.SCAN);
                 final IcapRespmod scanReq = new IcapRespmod(serverUri, false, filename, fileToScan);
 
-                System.out.println(" sending scan req [\r\n" + scanReq.getIcapMessage() + "\r\n]");
+                logger.debug(" sending scan req [\r\n" + scanReq.getIcapMessage() + "\r\n]", null);
 
                 msg.reset();
                 channel.writeAndFlush(scanReq.getIcapMessage());
                 channel.writeAndFlush(scanReq.getInStream());
                 channel.writeAndFlush(scanReq.getTrailerBytes());
-                System.out.println(" written payload -> ");
+                logger.debug(" written payload -> ", null);
                 channel.flush();
             }
             break;
         case SCAN:
             stateRef.set(IcapSessionState.SCAN_DONE);
             if (msg.getCause() != null) {
-                System.out.println(" SCAN state - failed " + msg.getCause());
+                logger.debug(" SCAN state - failed " + msg.getCause(), null);
                 futureRef.get().done(msg.getCause());
             } else {
-                System.out.println(" SCAN state - success " + msg.getResult());
+                logger.debug(" SCAN state - success " + msg.getResult(), null);
                 futureRef.get().done(msg.getResult());
             }
             break;
@@ -175,7 +179,7 @@ public class IcapSession {
      * Callback from netty on channel inactivity.
      */
     public void onTimeout() {
-        System.out.println("**channel timeout** TH " + Thread.currentThread().getId());
+        logger.debug("**channel timeout** TH " + Thread.currentThread().getId(), null);
         stateRef.set(IcapSessionState.NULL);
         if (null != futureRef.get()) {
             futureRef.get().done(new IcapException("inactivity timeout"));
@@ -187,13 +191,22 @@ public class IcapSession {
      * Callback from netty on channel closure.
      */
     public void onDisconnect() {
-        System.out.println("**channel disconnected (not-ignored)** TH " + Thread.currentThread().getId());
+        logger.debug("**channel disconnected (not-ignored)** TH " + Thread.currentThread().getId(), null);
         stateRef.set(IcapSessionState.NULL);
         if (futureRef.get() != null) {
             futureRef.get().done(new IcapException("channel disconnected"));
             futureRef.set(null);
         }
 
+    }
+
+    /**
+     * Return the logger object.
+     *
+     * @return the logger
+     */
+    public Logger getLogger() {
+        return logger;
     }
 
     /** Reference to the current IcapFuture object. */
@@ -227,6 +240,9 @@ public class IcapSession {
 
     /** The channel associated with this session. */
     private Channel channel;
+
+    /** The logger. */
+    private final Logger logger;
 
     /** Enum identifying the session states. */
     enum IcapSessionState {
