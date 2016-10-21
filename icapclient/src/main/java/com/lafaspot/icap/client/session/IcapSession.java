@@ -8,14 +8,12 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.util.concurrent.GenericFutureListener;
 
-import java.io.OutputStream;
 import java.net.URI;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import com.lafaspot.icap.client.IcapResult;
 import com.lafaspot.icap.client.codec.IcapMessage;
@@ -63,11 +61,10 @@ public class IcapSession {
      *
      * @param filename name of the file to be scanned
      * @param fileToScan byte stream of the file to be scanned
-     * @param scannedFile byte stream of the cleaned file
      * @return the future object
      * @throws IcapException on failure
      */
-    public Future<IcapResult> scanFile(@Nonnull String filename, @Nonnull byte[] fileToScan, @Nullable OutputStream scannedFile)
+    public Future<IcapResult> scanFile(@Nonnull String filename, @Nonnull byte[] fileToScan)
             throws IcapException {
 
         if (!isUsed.compareAndSet(false, true)) {
@@ -76,7 +73,6 @@ public class IcapSession {
 
         this.filename = filename;
         this.fileToScan = fileToScan;
-        this.outStream = scannedFile;
 
         ChannelFuture f;
         try {
@@ -214,9 +210,6 @@ public class IcapSession {
 
     /** pointer to the byte stream of the file to be scanned. */
     private byte[] fileToScan;
-
-    /** pointer to the cleaned/scanned byte stream from the AV server. */
-    private OutputStream outStream;
 
     /** filename of the input file to be scanned. */
     private String filename;

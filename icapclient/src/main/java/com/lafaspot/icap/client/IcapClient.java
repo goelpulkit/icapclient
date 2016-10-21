@@ -8,12 +8,10 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 
-import java.io.OutputStream;
 import java.net.URI;
 import java.util.concurrent.Future;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import com.lafaspot.icap.client.exception.IcapException;
 import com.lafaspot.icap.client.session.IcapSession;
@@ -53,14 +51,12 @@ public class IcapClient {
      * @param inactivityTimeout channel inactivity timeout
      * @param fileName name of the file to be scanned
      * @param toScanFile byte stream of the file to be scanned
-     * @param scannedFile cleaned byte stream
      * @return the future object
      * @throws IcapException on failure
      */
     public Future<IcapResult> scanFile(@Nonnull final URI server, final long connectTimeout, final long inactivityTimeout,
-            @Nonnull String fileName, @Nonnull byte[] toScanFile, @Nullable OutputStream scannedFile) throws IcapException {
-        return new IcapSession("abc", server, connectTimeout, inactivityTimeout, bootstrap, logManager).scanFile(fileName, toScanFile,
-                scannedFile);
+            @Nonnull String fileName, @Nonnull byte[] toScanFile) throws IcapException {
+        return new IcapSession("abc", server, connectTimeout, inactivityTimeout, bootstrap, logManager).scanFile(fileName, toScanFile);
     }
 
     /** The netty bootstrap. */
