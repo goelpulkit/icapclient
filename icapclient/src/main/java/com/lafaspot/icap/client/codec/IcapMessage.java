@@ -197,6 +197,8 @@ public class IcapMessage {
                 // reset the readIndex to avoid replay
                 buf.readerIndex(buf.writerIndex());
 
+                result.setCleanedBytes(resPayload);
+
                 state = nextStates.remove(0);
                 logger.debug(" done with parsing payload of " + payloadLen + " bytes - moving to " + state, null);
 

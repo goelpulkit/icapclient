@@ -76,6 +76,8 @@ public class IcapClientTest {
                 copiedBuf, null);
         IcapResult r = future.get();
         Assert.assertEquals(r.getNumViolations(), 0);
+
+        Assert.assertEquals(r.getCleanedBytes().length, fileLen);
     }
 
     @Test

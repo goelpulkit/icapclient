@@ -28,6 +28,23 @@ public class IcapResult {
     /** Disposition returned by Symantec server. */
     private Disposition disposition;
 
+    /** Stream where cleaned file needs to be written to. If client does not want cleaned data, they can pass null. */
+    private byte cleanedBytes[];
+
+    /**
+     * @return the cleanedBytes
+     */
+    public byte[] getCleanedBytes() {
+        return cleanedBytes;
+    }
+
+    /**
+     * @param cleanedBytes the cleanedBytes to set
+     */
+    public void setCleanedBytes(byte[] cleanedBytes) {
+        this.cleanedBytes = cleanedBytes;
+    }
+
     /**
      * @return the violationFilename
      */
