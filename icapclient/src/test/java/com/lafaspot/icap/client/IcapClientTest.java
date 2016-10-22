@@ -3,7 +3,10 @@ package com.lafaspot.icap.client;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.Formatter;
 import java.util.concurrent.ExecutionException;
 
 import org.testng.Assert;
@@ -55,7 +58,7 @@ public class IcapClientTest {
     }
 
     @Test
-    public void scanImgFile() throws IcapException, IOException, InterruptedException, ExecutionException {
+    public void scanImgFile() throws IcapException, IOException, InterruptedException, ExecutionException, NoSuchAlgorithmException {
 
         final String filename = "koenigsegg.jpg";
         InputStream in = getClass().getClassLoader().getResourceAsStream(filename);
@@ -76,7 +79,6 @@ public class IcapClientTest {
                 copiedBuf);
         IcapResult r = future.get();
         Assert.assertEquals(r.getNumViolations(), 0);
-
         Assert.assertEquals(r.getCleanedBytes().length, fileLen);
     }
 
@@ -152,5 +154,43 @@ public class IcapClientTest {
         future = cli.scanFile(uri, CONNECT_TIMEOUT_MILLIS, INACTIVITY_TIMEOUT_MILLIS, filename, copiedBuf);
         r = future.get();
         Assert.assertEquals(r.getNumViolations(), 0);
+    }
+    
+    @Test
+    public void scanVirusFile() throws IcapException, IOException, InterruptedException, ExecutionException, NoSuchAlgorithmException {
+        final String filename = "eicar_virus.com";
+        InputStream in = getClass().getClassLoader().getResourceAsStream(filename);
+        final int fileLen = in.available();
+        byte buf[] = new byte[fileLen];
+
+        int o = 0;
+        int n = 0;
+
+        while ((o < fileLen) && (n = in.read(buf, o, 1)) != -1) {
+            o += n;
+        }
+        byte copiedBuf[] = Arrays.copyOfRange(buf, 0, o);
+
+        URI uri = URI.create("icap://localhost:1344");
+        IcapClient cli = new IcapClient(2, logManager);
+        java.util.concurrent.Future<IcapResult> future = cli.scanFile(uri, CONNECT_TIMEOUT_MILLIS, INACTIVITY_TIMEOUT_MILLIS, filename,
+                copiedBuf);
+        IcapResult r = future.get();
+        Assert.assertEquals(r.getNumViolations(), 1);
+    }
+    
+    private String shaChecksum(byte[] buf) throws NoSuchAlgorithmException{
+        MessageDigest md = MessageDigest.getInstance("SHA-1");
+        return byteArray2Hex(md.digest(buf));
+    }
+    
+    private String byteArray2Hex(final byte[] hash) {
+    	final Formatter formatter = new Formatter();
+        for (byte b : hash) {
+            formatter.format("%02x", b);
+        }
+        final String sha = formatter.toString();
+        formatter.close();
+        return sha;
     }
 }
