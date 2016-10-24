@@ -289,24 +289,31 @@ public class IcapMessage {
             throw new IcapException (IcapException.FailureType.PARSE_ERROR);
         }
         int eohIdx = 0;
-        int newEohLen = 2;
+        // full delim bytes CRLFCRLF
+        final int fullEohLen = delim.length;
+        // half delim CRLF
+        final int halfEohLen = fullEohLen / 2;
         for (int idx = buf.readerIndex(); idx < buf.writerIndex(); idx++) {
             final char msg = (char) buf.getByte(idx);
             if (msg == delim[eohIdx]) {
                 eohIdx++;
                 if (eohIdx == (delim.length)) {
-                    // remove last 3 bytes
-                    currentMessage.setLength(currentMessage.length() - 3);
+                    // remove the last (fullEohLen -1) bytes as the last byte is yet to be added
+                    currentMessage.setLength(currentMessage.length() - (fullEohLen - 1));
+                    // next byte to be read is idx+1
                     buf.readerIndex(idx + 1);
                     return true;
                 } else {
+                    // length did not match, add the byte (as char) to global buffer
                     currentMessage.append(msg);
                 }
             } else {
-                if (newEohLen == eohIdx) {
+                if (halfEohLen == eohIdx) {
                     // remove last 2 bytes, the 0xA and 0xD
-                    currentMessage.setLength(currentMessage.length() - newEohLen);
-                    buf.readerIndex(idx + 1);
+                    currentMessage.setLength(currentMessage.length() - halfEohLen);
+
+                    // don't increase reader index to idx+1 as we have already read the next byte
+                    buf.readerIndex(idx);
                     return true;
                 } else {
                     currentMessage.append(msg);

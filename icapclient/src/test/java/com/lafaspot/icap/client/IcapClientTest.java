@@ -1,5 +1,6 @@
 package com.lafaspot.icap.client;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -80,6 +81,14 @@ public class IcapClientTest {
         IcapResult r = future.get();
         Assert.assertEquals(r.getNumViolations(), 0);
         Assert.assertEquals(r.getCleanedBytes().length, fileLen);
+
+        FileOutputStream ostream = new FileOutputStream("scanned." + filename);
+        try {
+            ostream.write(r.getCleanedBytes());
+        } finally {
+            ostream.close();
+        }
+        Assert.assertEquals(r.getCleanedBytes(), buf);
     }
 
     @Test
@@ -110,12 +119,13 @@ public class IcapClientTest {
 
         final String filename = "test.log";
         InputStream in = getClass().getClassLoader().getResourceAsStream(filename);
-        byte buf[] = new byte[8192];
+        final int fileLen = in.available();
+        byte buf[] = new byte[fileLen];
 
         int o = 0;
         int n = 0;
 
-        while ((o < 8192) && (n = in.read(buf, o, 1)) != -1) {
+        while ((o < fileLen) && (n = in.read(buf, o, 1)) != -1) {
             o += n;
         }
         byte copiedBuf[] = Arrays.copyOfRange(buf, 0, o);
@@ -126,6 +136,16 @@ public class IcapClientTest {
                 copiedBuf);
         IcapResult r = future.get();
         Assert.assertEquals(r.getNumViolations(), 0);
+
+        Assert.assertEquals(r.getCleanedBytes().length, fileLen);
+
+        FileOutputStream ostream = new FileOutputStream("scanned." + filename);
+        try {
+            ostream.write(r.getCleanedBytes());
+        } finally {
+            ostream.close();
+        }
+        Assert.assertEquals(r.getCleanedBytes(), buf);
     }
 
     @Test
@@ -155,7 +175,7 @@ public class IcapClientTest {
         r = future.get();
         Assert.assertEquals(r.getNumViolations(), 0);
     }
-    
+
     @Test
     public void scanVirusFile() throws IcapException, IOException, InterruptedException, ExecutionException, NoSuchAlgorithmException {
         final String filename = "eicar_virus.com";
@@ -178,12 +198,12 @@ public class IcapClientTest {
         IcapResult r = future.get();
         Assert.assertEquals(r.getNumViolations(), 1);
     }
-    
+
     private String shaChecksum(byte[] buf) throws NoSuchAlgorithmException{
         MessageDigest md = MessageDigest.getInstance("SHA-1");
         return byteArray2Hex(md.digest(buf));
     }
-    
+
     private String byteArray2Hex(final byte[] hash) {
     	final Formatter formatter = new Formatter();
         for (byte b : hash) {
