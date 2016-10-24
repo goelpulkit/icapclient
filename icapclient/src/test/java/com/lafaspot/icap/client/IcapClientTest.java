@@ -36,7 +36,7 @@ public class IcapClientTest {
         });
     }
     @Test
-    public void scanBadFile() throws IcapException, IOException, InterruptedException, ExecutionException {
+    public void scanBadFile() throws IcapException, IOException, InterruptedException, ExecutionException, NoSuchAlgorithmException {
 
         final String filename = "badAvScanDoc.doc";
         InputStream in = getClass().getClassLoader().getResourceAsStream("badAvScanDoc.doc");
@@ -56,6 +56,10 @@ public class IcapClientTest {
                 copiedBuf);
         IcapResult r = future.get();
         Assert.assertEquals(r.getNumViolations(), 0);
+        
+        String inputChecksum = shaChecksum(copiedBuf);
+        String outputChecksum = shaChecksum(r.getCleanedBytes());
+        Assert.assertEquals(inputChecksum, outputChecksum);
     }
 
     @Test
@@ -88,7 +92,10 @@ public class IcapClientTest {
         } finally {
             ostream.close();
         }
-        Assert.assertEquals(r.getCleanedBytes(), buf);
+        
+        String inputChecksum = shaChecksum(buf);
+        String outputChecksum = shaChecksum(r.getCleanedBytes());
+        Assert.assertEquals(inputChecksum, outputChecksum);
     }
 
     @Test
@@ -112,10 +119,14 @@ public class IcapClientTest {
                 buf);
         IcapResult r = future.get();
         Assert.assertEquals(r.getNumViolations(), 0);
+        
+        String inputChecksum = shaChecksum(buf);
+        String outputChecksum = shaChecksum(r.getCleanedBytes());
+        Assert.assertEquals(inputChecksum, outputChecksum);
     }
 
     @Test
-    public void scanTestFile() throws IcapException, IOException, InterruptedException, ExecutionException {
+    public void scanTestFile() throws IcapException, IOException, InterruptedException, ExecutionException, NoSuchAlgorithmException {
 
         final String filename = "test.log";
         InputStream in = getClass().getClassLoader().getResourceAsStream(filename);
@@ -145,11 +156,14 @@ public class IcapClientTest {
         } finally {
             ostream.close();
         }
-        Assert.assertEquals(r.getCleanedBytes(), buf);
+        
+        String inputChecksum = shaChecksum(copiedBuf);
+        String outputChecksum = shaChecksum(r.getCleanedBytes());
+        Assert.assertEquals(inputChecksum, outputChecksum);
     }
 
     @Test
-    public void scanTestFileTwice() throws IcapException, IOException, InterruptedException, ExecutionException {
+    public void scanTestFileTwice() throws IcapException, IOException, InterruptedException, ExecutionException, NoSuchAlgorithmException {
 
         final String filename = "test.log";
         // final String filename = "somelog.log";
@@ -163,7 +177,7 @@ public class IcapClientTest {
             o += n;
         }
         byte copiedBuf[] = Arrays.copyOfRange(buf, 0, o);
-
+        
         URI uri = URI.create("icap://localhost:1344");
         IcapClient cli = new IcapClient(2, logManager);
         java.util.concurrent.Future<IcapResult> future = cli.scanFile(uri, CONNECT_TIMEOUT_MILLIS, INACTIVITY_TIMEOUT_MILLIS, filename,
@@ -174,6 +188,10 @@ public class IcapClientTest {
         future = cli.scanFile(uri, CONNECT_TIMEOUT_MILLIS, INACTIVITY_TIMEOUT_MILLIS, filename, copiedBuf);
         r = future.get();
         Assert.assertEquals(r.getNumViolations(), 0);
+        
+        String inputChecksum = shaChecksum(copiedBuf);
+        String outputChecksum = shaChecksum(r.getCleanedBytes());
+        Assert.assertEquals(inputChecksum, outputChecksum);
     }
 
     @Test
