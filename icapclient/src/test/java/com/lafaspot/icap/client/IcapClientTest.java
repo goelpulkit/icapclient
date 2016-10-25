@@ -205,7 +205,7 @@ public class IcapClientTest {
     }
 
     private String byteArray2Hex(final byte[] hash) {
-    	final Formatter formatter = new Formatter();
+        final Formatter formatter = new Formatter();
         for (byte b : hash) {
             formatter.format("%02x", b);
         }

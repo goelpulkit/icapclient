@@ -132,8 +132,15 @@ public class IcapResult {
         return disposition;
     }
 
+    /**
+     * Sets the disposition value.
+     * 
+     * @param disposition disposition enum value
+     */
 
-
+    public void setDisposition(@Nonnull Disposition disposition) {
+        this.disposition = disposition;
+    }
 
     /**
      * @param disposition the disposition to set
@@ -171,7 +178,7 @@ public class IcapResult {
 
 
     public enum Disposition {
-        NOT_FIXED(0), REPAIRED(1), DELETED(2);
+        CLEAN(-1), INFECTED_UNREPAIRED(0), INFECTED_REPAIRED(1), INFECTED_REPLACED(2);
 
         private Disposition(int v) {
             intVal = v;
@@ -182,11 +189,11 @@ public class IcapResult {
                 int intVal = Integer.parseInt(val);
                 switch (intVal) {
                 case 0:
-                    return NOT_FIXED;
+                    return INFECTED_UNREPAIRED;
                 case 1:
-                    return REPAIRED;
+                    return INFECTED_REPAIRED;
                 case 2:
-                    return DELETED;
+                    return INFECTED_REPLACED;
                 default:
                     throw new IcapException (IcapException.FailureType.PARSE_ERROR);
                 }

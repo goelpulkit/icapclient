@@ -23,6 +23,7 @@ import org.apache.http.message.ParserCursor;
 import org.apache.http.util.CharArrayBuffer;
 
 import com.lafaspot.icap.client.IcapResult;
+import com.lafaspot.icap.client.IcapResult.Disposition;
 import com.lafaspot.icap.client.exception.IcapException;
 import com.lafaspot.logfast.logging.Logger;
 
@@ -340,6 +341,7 @@ public class IcapMessage {
                     try {
                         resBodyVal = Integer.parseInt(resBodyStr.trim());
                         result.setNumViolations(0);
+                        result.setDisposition(Disposition.CLEAN);
                         break;
                     } catch (NumberFormatException e) {
                         final String partOfTheErrorStr = (resBodyStr.length() > 10 ? resBodyStr.substring(0, 9) : resBodyStr);

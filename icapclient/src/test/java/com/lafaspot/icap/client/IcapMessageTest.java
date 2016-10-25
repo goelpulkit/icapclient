@@ -25,27 +25,6 @@ import com.lafaspot.icap.client.exception.IcapException;
 public class IcapMessageTest {
 
     @Test
-    public void test() {
-
-        Pattern pat = Pattern.compile("\r\n");
-
-        final String res = "RESPMOD icap://127.0.0.1/SYMCScanResp-AV ICAP/1.0" + "\r\n" + "Host: 127.0.0.1" + "\r\n"
-                + "Connection: keep-alive" + "\r\n" + "Encapsulated: req-hdr=0, res-hdr=43, res-body=19" + "\r\n" + "\r\n";
-
-        BasicHeaderValueParser hvp = new BasicHeaderValueParser();
-        String h[] = pat.split(res);
-        for (int i = 0; i < h.length; i++) {
-
-
-            ParserCursor c = new ParserCursor(0, res.length());
-            CharArrayBuffer b = new CharArrayBuffer(64);
-            b.append(h[i]);
-            System.out.println(" === " + i + ", " + hvp.parseElements(b, c));
-        }
-
-    }
-
-    @Test
     public void testParseHeaders() throws IcapException {
         final String res = "RESPMOD icap://127.0.0.1/SYMCScanResp-AV ICAP/1.0" + "\r\n" + "Host: 127.0.0.1" + "\r\n"
                 + "Connection: keep-alive" + "\r\n" + "Encapsulated: req-hdr=0, res-hdr=43, res-body=19" + "\r\n" + "\r\n"
