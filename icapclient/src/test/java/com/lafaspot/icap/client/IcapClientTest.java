@@ -35,7 +35,8 @@ public class IcapClientTest {
         logger = logManager.getLogger(new LogContext(IcapClientTest.class.getName()) {
         });
     }
-    @Test
+
+    @Test(enabled = false)
     public void scanBadFile() throws IcapException, IOException, InterruptedException, ExecutionException {
 
         final String filename = "badAvScanDoc.doc";
@@ -58,7 +59,7 @@ public class IcapClientTest {
         Assert.assertEquals(r.getNumViolations(), 0);
     }
 
-    @Test
+    @Test(enabled = false)
     public void scanImgFile() throws IcapException, IOException, InterruptedException, ExecutionException, NoSuchAlgorithmException {
 
         final String filename = "koenigsegg.jpg";
@@ -91,7 +92,7 @@ public class IcapClientTest {
         Assert.assertEquals(r.getCleanedBytes(), buf);
     }
 
-    @Test
+    @Test(enabled = false)
     public void scanLogFile() throws Exception {
 
         final String filename = "somelog.log";
@@ -114,7 +115,7 @@ public class IcapClientTest {
         Assert.assertEquals(r.getNumViolations(), 0);
     }
 
-    @Test
+    @Test(enabled = false)
     public void scanTestFile() throws IcapException, IOException, InterruptedException, ExecutionException {
 
         final String filename = "test.log";
@@ -148,7 +149,7 @@ public class IcapClientTest {
         Assert.assertEquals(r.getCleanedBytes(), buf);
     }
 
-    @Test
+    @Test(enabled = false)
     public void scanTestFileTwice() throws IcapException, IOException, InterruptedException, ExecutionException {
 
         final String filename = "test.log";
@@ -176,7 +177,7 @@ public class IcapClientTest {
         Assert.assertEquals(r.getNumViolations(), 0);
     }
 
-    @Test
+    @Test(enabled = false)
     public void scanVirusFile() throws IcapException, IOException, InterruptedException, ExecutionException, NoSuchAlgorithmException {
         final String filename = "eicar_virus.com";
         InputStream in = getClass().getClassLoader().getResourceAsStream(filename);

@@ -6,6 +6,69 @@
     <version>0.0.1-SNAPSHOT</version>
     <name>icapclient</name>
     <description>Icap client to talk to Symantec server.</description>
+    <prerequisites>
+        <maven>3.0</maven>
+    </prerequisites>
+
+    <developers>
+        <developer>
+            <id>lafa</id>
+            <name>Lafa</name>
+            <email>luis.alves@lafaspot.com</email>
+        </developer>
+        <developer>
+            <id>kraman</id>
+            <name>Kumar Raman</name>
+            <email>kumar.raman@yahoo.com</email>
+        </developer>
+    </developers>
+    <scm>
+        <developerConnection>scm:git:https://github.com/lafaspot/icapclient.git</developerConnection>
+        <connection>scm:git:https://github.com/lafaspot/icapclient.git</connection>
+        <url>https://github.com/lafaspot/icapclient.git</url>
+        <tag>icapclient-1.0</tag>
+    </scm>
+
+
+
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <distributionManagement>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
+        <repository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+        </repository>
+    </distributionManagement>
+
+    <properties>
+        <project-name>imapnio</project-name>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>${project.build.sourceEncoding}</project.reporting.outputEncoding>
+        <excludedJNILibraries />
+        <excludedWarJNILibraries />
+        <jdk.version>1.8</jdk.version>
+        <maven-findbugs-plugin.version>3.0.1</maven-findbugs-plugin.version>
+        <maven-surefire-plugin.version>2.17</maven-surefire-plugin.version>
+        <maven-pmd-plugin.version>3.4</maven-pmd-plugin.version>
+        <maven-checkstyle-plugin.version>2.13</maven-checkstyle-plugin.version>
+        <jersey.version>2.18</jersey.version>
+        <jackson.version>2.5.3</jackson.version>
+        <jacoco-maven-plugin.version>0.7.5.201505241946</jacoco-maven-plugin.version>
+        <testTimeLimitInSeconds>0</testTimeLimitInSeconds>
+        <main.basedir>${project.basedir}</main.basedir>
+    </properties>
+
+
     <dependencies>
 
         <dependency>
