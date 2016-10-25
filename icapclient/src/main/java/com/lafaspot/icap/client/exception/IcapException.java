@@ -3,7 +3,10 @@
  */
 package com.lafaspot.icap.client.exception;
 
+import java.util.List;
+
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * IcapException - encapsulates failure reason.
@@ -13,8 +16,28 @@ import javax.annotation.Nonnull;
  */
 public class IcapException extends Exception {
 
+
+    /** Failure type. */
+    private FailureType failureType;
+
+    /**
+     * The map of validation errors. Specifies what input caused the invalid input error. Can be null.
+     */
+    @Nullable
+    private List<String> errorDetail = null;
+
     public IcapException(String message) {
         super(message);
+    }
+
+    @Override
+    public String getMessage() {
+        final StringBuffer buf = new StringBuffer(super.getMessage());
+        if (null != errorDetail) {
+            buf.append(", Details:");
+            buf.append(errorDetail);
+        }
+        return buf.toString();
     }
 
     /**
@@ -27,7 +50,27 @@ public class IcapException extends Exception {
         this.failureType = failureType;
     }
 
-    private FailureType failureType;
+    /**
+     * Constructor with failure type.
+     *
+     * @param failureType type of failure
+     * @param errorDetail more info on the error
+     */
+    public IcapException(@Nonnull FailureType failureType, @Nullable List<String> errorDetail) {
+        super(failureType.getMessage());
+        this.failureType = failureType;
+        this.errorDetail = errorDetail;
+    }
+
+    /**
+     * Constructor with failure type.
+     *
+     * @param failureType type of failure
+     * @param cause the wrapped exception
+     */
+    public IcapException(@Nonnull FailureType failureType, @Nullable Throwable cause) {
+        super(failureType.getMessage(), cause);
+    }
 
     /**
      * Types of failures.

@@ -35,9 +35,8 @@ public class IcapClientTest {
         logger = logManager.getLogger(new LogContext(IcapClientTest.class.getName()) {
         });
     }
-    @Test
+    @Test(enabled = false)
     public void scanBadFile() throws IcapException, IOException, InterruptedException, ExecutionException, NoSuchAlgorithmException {
-
         final String filename = "badAvScanDoc.doc";
         InputStream in = getClass().getClassLoader().getResourceAsStream("badAvScanDoc.doc");
         byte buf[] = new byte[8192];
@@ -62,7 +61,7 @@ public class IcapClientTest {
         Assert.assertEquals(inputChecksum, outputChecksum);
     }
 
-    @Test
+    @Test(enabled = false)
     public void scanImgFile() throws IcapException, IOException, InterruptedException, ExecutionException, NoSuchAlgorithmException {
 
         final String filename = "koenigsegg.jpg";
@@ -98,7 +97,7 @@ public class IcapClientTest {
         Assert.assertEquals(inputChecksum, outputChecksum);
     }
 
-    @Test
+    @Test(enabled = false)
     public void scanLogFile() throws Exception {
 
         final String filename = "somelog.log";
@@ -125,7 +124,7 @@ public class IcapClientTest {
         Assert.assertEquals(inputChecksum, outputChecksum);
     }
 
-    @Test
+    @Test(enabled = false)
     public void scanTestFile() throws IcapException, IOException, InterruptedException, ExecutionException, NoSuchAlgorithmException {
 
         final String filename = "test.log";
@@ -162,7 +161,7 @@ public class IcapClientTest {
         Assert.assertEquals(inputChecksum, outputChecksum);
     }
 
-    @Test
+    @Test(enabled = false)
     public void scanTestFileTwice() throws IcapException, IOException, InterruptedException, ExecutionException, NoSuchAlgorithmException {
 
         final String filename = "test.log";
@@ -194,7 +193,7 @@ public class IcapClientTest {
         Assert.assertEquals(inputChecksum, outputChecksum);
     }
 
-    @Test
+    @Test(enabled = false)
     public void scanVirusFile() throws IcapException, IOException, InterruptedException, ExecutionException, NoSuchAlgorithmException {
         final String filename = "eicar_virus.com";
         InputStream in = getClass().getClassLoader().getResourceAsStream(filename);
@@ -223,7 +222,7 @@ public class IcapClientTest {
     }
 
     private String byteArray2Hex(final byte[] hash) {
-    	final Formatter formatter = new Formatter();
+        final Formatter formatter = new Formatter();
         for (byte b : hash) {
             formatter.format("%02x", b);
         }

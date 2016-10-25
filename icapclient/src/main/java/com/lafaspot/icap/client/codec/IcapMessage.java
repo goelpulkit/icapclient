@@ -7,6 +7,7 @@ import io.netty.buffer.ByteBuf;
 
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -22,6 +23,7 @@ import org.apache.http.message.ParserCursor;
 import org.apache.http.util.CharArrayBuffer;
 
 import com.lafaspot.icap.client.IcapResult;
+import com.lafaspot.icap.client.IcapResult.Disposition;
 import com.lafaspot.icap.client.exception.IcapException;
 import com.lafaspot.logfast.logging.Logger;
 
@@ -99,7 +101,7 @@ public class IcapMessage {
                             }
                         }
                     } catch (NumberFormatException e) {
-                        throw new IcapException(IcapException.FailureType.PARSE_ERROR);
+                        throw new IcapException(IcapException.FailureType.PARSE_ERROR, e);
                     }
                 }
 
@@ -151,7 +153,7 @@ public class IcapMessage {
             }
 
             case PARSE_RES_PAYLOAD_LENGTH: {
-                if (!parseForHeader2(buf, dec, ICAP_ENDOFHEADER_DELIM)) {
+                if (!parseForHeader(buf, dec, ICAP_ENDOFHEADER_DELIM)) {
                     return;
                 }
                 final String lengthStr = currentMessage.toString().trim();
@@ -160,7 +162,8 @@ public class IcapMessage {
                 try {
                     payloadLen = Integer.parseInt(lengthStr, 16);
                 } catch (NumberFormatException e) {
-                    throw new IcapException(IcapException.FailureType.PARSE_ERROR);
+                    final String errorLenStr = (lengthStr.length() > 10 ? lengthStr.substring(0, 0) : lengthStr);
+                    throw new IcapException(IcapException.FailureType.PARSE_ERROR, Arrays.asList("payloadLen", errorLenStr));
                 }
 
                 resPayload = new byte[payloadLen];
@@ -221,7 +224,8 @@ public class IcapMessage {
                 try {
                     status = Integer.parseInt(toks[1].trim());
                 } catch (NumberFormatException e) {
-                    throw new IcapException (IcapException.FailureType.PARSE_ERROR);
+                    final String errorStatusStr = toks[1].length() > 10 ? toks[1].substring(0, 0) : toks[1];
+                    throw new IcapException(IcapException.FailureType.PARSE_ERROR, Arrays.asList("icapStatusHdr", errorStatusStr));
                 }
                 logger.debug("-- icap status code " + status, null);
                 switch (status) {
@@ -232,7 +236,7 @@ public class IcapMessage {
                     handleIcap200Ok(headers);
                     break;
                 default:
-                    throw new IcapException (IcapException.FailureType.PARSE_ERROR);
+                    throw new IcapException(IcapException.FailureType.PARSE_ERROR, Arrays.asList("invalidStatus", String.valueOf(status)));
                 }
             }
         }
@@ -281,7 +285,7 @@ public class IcapMessage {
         return false;
     }
 
-    private boolean parseForHeader2(@Nonnull final ByteBuf buf, @Nonnull IcapMessageDecoder dec, @Nonnull final byte[] delim)
+    private boolean parseForHeader(@Nonnull final ByteBuf buf, @Nonnull IcapMessageDecoder dec, @Nonnull final byte[] delim)
             throws IcapException {
 
         if (buf.readableBytes() < delim.length) {
@@ -337,9 +341,11 @@ public class IcapMessage {
                     try {
                         resBodyVal = Integer.parseInt(resBodyStr.trim());
                         result.setNumViolations(0);
+                        result.setDisposition(Disposition.CLEAN);
                         break;
                     } catch (NumberFormatException e) {
-                        throw new IcapException (IcapException.FailureType.PARSE_ERROR);
+                        final String partOfTheErrorStr = (resBodyStr.length() > 10 ? resBodyStr.substring(0, 9) : resBodyStr);
+                        throw new IcapException(IcapException.FailureType.PARSE_ERROR, Arrays.asList("bodyLen", partOfTheErrorStr));
                     }
 
                 } else if (headers[index].indexOf(ICAP_NULL_BODY_PREFIX) != -1) {
@@ -368,7 +374,8 @@ public class IcapMessage {
                     numViolations = Integer.parseInt(headers[index].substring(k + 1).trim());
                     result.setNumViolations(numViolations);
                 } catch (NumberFormatException e) {
-                    throw new IcapException (IcapException.FailureType.PARSE_ERROR);
+                    final String partOfTheErrorStr = (headers[index].length() > 10 ? headers[index].substring(0, 9) : headers[index]);
+                    throw new IcapException(IcapException.FailureType.PARSE_ERROR, Arrays.asList("numViolations", partOfTheErrorStr));
                 }
             } else {
                 throw new IcapException (IcapException.FailureType.PARSE_ERROR);

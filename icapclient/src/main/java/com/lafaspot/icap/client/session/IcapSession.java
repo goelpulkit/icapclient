@@ -97,8 +97,8 @@ public class IcapSession {
 
             }
 
-        } catch (InterruptedException e) {
-            throw new IcapException(IcapException.FailureType.NOT_CONNECTED);
+        } catch (Exception e) {
+            throw new IcapException(IcapException.FailureType.NOT_CONNECTED, e);
         }
 
         futureRef.set(new IcapFuture(this));
